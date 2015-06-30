@@ -6,6 +6,8 @@
   "scripts": {
     "test": "tape test/**/*.js | faucet"
   },
+  "repository": "git@github.com:perliedman/standstill.git",
+  "homepage": "https://github.com/perliedman/standstill",
   "keywords": [
     "gps",
     "geojson",
