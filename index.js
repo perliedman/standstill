@@ -18,15 +18,23 @@ module.exports = function(geojson, options) {
             stopMinTime: options.stopMinTime || 5 * 60 * 1000
         },
         handleCandidate = function(result) {
-            var c = result.stopCandidate;
+            var c = result.stopCandidate,
+                coordSum;
 
             if (c) {
-                if (result.lastTimestamp - c.startTime >= filter.stopMinTime) {
-                    result.stops.features.push(point([c.lngSum / c.numCoords, c.latSum / c.numCoords], {
-                        startTime: c.startTime,
-                        endTime: result.lastTimestamp
+                if (result.lastTimestamp - c.startTimeStamp >= filter.stopMinTime) {
+                    coordSum = c.coords.reduce(function(center, c) {
+                        center[0] += c[0];
+                        center[1] += c[1];
+                        return center;
+                    }, [0, 0]);
+                    result.stops.features.push(point([coordSum[0] / c.coords.length, coordSum[1] / c.coords.length], {
+                        startTime: c.times[0],
+                        endTime: c.times[c.times.length - 1]
                     }));
                     result.routes.features.push(linestring(result.currentRoute, {coordTimes: result.currentRouteTimes}));
+                    result.currentRoute = [];
+                    result.currentRouteTimes = [];
 
                     return true;
                 }
@@ -41,34 +49,27 @@ module.exports = function(geojson, options) {
                 candidate = result.stopCandidate,
                 d;
 
-            if (result.lastPoint) {
+            if (!candidate) {
+                candidate = result.stopCandidate = {
+                    startTimeStamp: timestamp,
+                    coords: [],
+                    times: []
+                };
+            }
+
+            candidate.coords.push(c);
+            candidate.times.push(t);
+
+            if (result.lastPoint && candidate) {
                 d = distance(p, result.lastPoint);
                 if (d > filter.stopTolerance || timestamp - result.lastTimestamp > filter.maxTimeGap) {
-                    handleCandidate(result);
+                    if (!handleCandidate(result)) {
+                        result.currentRoute = result.currentRoute.concat(candidate.coords);
+                        result.currentRouteTimes = result.currentRouteTimes.concat(candidate.times);
+                    }
                     delete result.stopCandidate;
-                    if (result.candidateRouteCoords.length) {
-                        result.currentRoute = result.currentRoute.concat(result.candidateRouteCoords);
-                        result.currentRouteTimes = result.currentRouteTimes.concat(result.candidateRouteTimes);
-                        result.candidateRouteCoords = [];
-                        result.candidateRouteTimes = [];
-                    }
-                    result.candidateRouteCoords.push(c);
-                    result.candidateRouteTimes.push(t);
-                } else {
-                    if (!candidate) {
-                        candidate = result.stopCandidate = {
-                            startTime: result.lastTimestamp,
-                            lngSum: 0,
-                            latSum: 0,
-                            numCoords: 0
-                        };
-                    }
-
-                    candidate.lngSum += c[0];
-                    candidate.latSum += c[1];
-                    candidate.numCoords++;
-                    result.candidateRouteCoords.push(c);
-                    result.candidateRouteTimes.push(t);
+                    result.currentRoute.push(c);
+                    result.currentRouteTimes.push(t);
                 }
             }
 
