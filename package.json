@@ -1,6 +1,6 @@
 {
   "name": "standstill",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Find locations where there has been no movement, a stop, within a GeoJSON track, typically recorded from a GPS",
   "main": "index.js",
   "scripts": {
