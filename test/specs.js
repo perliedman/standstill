@@ -2,6 +2,9 @@ var test = require('tape'),
     almostEqual = require('almost-equal'),
     findstops = require('../.'),
     geojsonTrack = require('./sample-geojson.json');
+    geojsonTrack2 = require('./sample-geojson2.json');
+
+geojsonTrack2.properties.coordTimes = geojsonTrack2.properties.positionData.map(function(d) { return d.date; });
 
 test('does not accept empty input', function(t) {
     try {
@@ -90,7 +93,7 @@ test('routes do not overlap', function(t) {
     t.end();
 });
 
-test('routes and stops together are as long as original geojson', function(t) {
+test('routes and stops together are as long as original geojson #1', function(t) {
     var ts = function(d) { return new Date(d).getTime(); },
         d = findstops(geojsonTrack, {maxTimeGap: 24 * 60 * 60 * 1000}),
         indataTime = ts(geojsonTrack.properties.coordTimes[geojsonTrack.properties.coordTimes.length - 1]) -
@@ -107,3 +110,22 @@ test('routes and stops together are as long as original geojson', function(t) {
         ' (diff is ' + Math.round((aggregatedTime - indataTime) / (60 * 1000)) + ' minutes)');
     t.end();
 });
+
+test('routes and stops together are as long as original geojson #2', function(t) {
+    var ts = function(d) { return new Date(d).getTime(); },
+        d = findstops(geojsonTrack2, {maxTimeGap: 24 * 60 * 60 * 1000}),
+        indataTime = ts(geojsonTrack2.properties.coordTimes[geojsonTrack2.properties.coordTimes.length - 1]) -
+            ts(geojsonTrack2.properties.coordTimes[0]),
+        stopTime = d.stops.features.reduce(function(t, s) {
+            return t + ts(s.properties.endTime) - ts(s.properties.startTime);
+        }, 0),
+        routeTime = d.routes.features.reduce(function(t, r) {
+            return t + ts(r.properties.coordTimes[r.properties.coordTimes.length - 1]) - ts(r.properties.coordTimes[0]);
+        }, 0),
+        aggregatedTime = stopTime + routeTime;
+
+    t.ok(almostEqual(aggregatedTime, indataTime, 5 * 60 * 1000), aggregatedTime + ' should be similar to ' + indataTime +
+        ' (diff is ' + Math.round((aggregatedTime - indataTime) / (60 * 1000)) + ' minutes)');
+    t.end();
+});
+

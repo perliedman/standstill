@@ -22,6 +22,7 @@ module.exports = function(geojson, options) {
                 coordSum;
 
             if (c) {
+                delete result.stopCandidate;
                 if (result.lastTimestamp - c.startTimeStamp >= filter.stopMinTime) {
                     coordSum = c.coords.reduce(function(center, c) {
                         center[0] += c[0];
@@ -33,6 +34,8 @@ module.exports = function(geojson, options) {
                         endTime: c.times[c.times.length - 1]
                     }));
                     if (result.currentRoute.length > 0) {
+                        result.currentRoute.push(c.coords[0]);
+                        result.currentRouteTimes.push(c.times[0]);
                         result.routes.features.push(linestring(result.currentRoute, {coordTimes: result.currentRouteTimes}));
                     }
                     result.currentRoute = [];
@@ -40,6 +43,9 @@ module.exports = function(geojson, options) {
 
                     return true;
                 }
+
+                result.currentRoute = result.currentRoute.concat(c.coords);
+                result.currentRouteTimes = result.currentRouteTimes.concat(c.times);
             }
 
             return false;
@@ -65,11 +71,7 @@ module.exports = function(geojson, options) {
             if (result.lastPoint && candidate) {
                 d = distance(p, result.lastPoint);
                 if (d > filter.stopTolerance || timestamp - result.lastTimestamp > filter.maxTimeGap) {
-                    if (!handleCandidate(result)) {
-                        result.currentRoute = result.currentRoute.concat(candidate.coords);
-                        result.currentRouteTimes = result.currentRouteTimes.concat(candidate.times);
-                    }
-                    delete result.stopCandidate;
+                    handleCandidate(result);
                     result.currentRoute.push(c);
                     result.currentRouteTimes.push(t);
                 }
