@@ -32,7 +32,9 @@ module.exports = function(geojson, options) {
                         startTime: c.times[0],
                         endTime: c.times[c.times.length - 1]
                     }));
-                    result.routes.features.push(linestring(result.currentRoute, {coordTimes: result.currentRouteTimes}));
+                    if (result.currentRoute.length > 0) {
+                        result.routes.features.push(linestring(result.currentRoute, {coordTimes: result.currentRouteTimes}));
+                    }
                     result.currentRoute = [];
                     result.currentRouteTimes = [];
 
