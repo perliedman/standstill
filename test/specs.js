@@ -1,8 +1,9 @@
 var test = require('tape'),
     almostEqual = require('almost-equal'),
     findstops = require('../.'),
-    geojsonTrack = require('./sample-geojson.json');
-    geojsonTrack2 = require('./sample-geojson2.json');
+    geojsonTrack = require('./sample-geojson.json'),
+    geojsonTrack2 = require('./sample-geojson2.json'),
+    geojsonTrack3 = require('./sample-geojson3.json');
 
 geojsonTrack2.properties.coordTimes = geojsonTrack2.properties.positionData.map(function(d) { return d.date; });
 
@@ -129,3 +130,51 @@ test('routes and stops together are as long as original geojson #2', function(t)
     t.end();
 });
 
+test('routes and stops together are as long as original geojson #3 with low tolerance', function(t) {
+    var ts = function(d) { return new Date(d).getTime(); },
+        d = findstops(geojsonTrack3, {maxTimeGap: 24 * 60 * 60 * 1000, stopTolerance: 0.05}),
+        indataTime = ts(geojsonTrack3.properties.coordTimes[geojsonTrack3.properties.coordTimes.length - 1]) -
+            ts(geojsonTrack3.properties.coordTimes[0]),
+        stopTime = d.stops.features.reduce(function(t, s) {
+            return t + ts(s.properties.endTime) - ts(s.properties.startTime);
+        }, 0),
+        routeTime = d.routes.features.reduce(function(t, r) {
+            return t + ts(r.properties.coordTimes[r.properties.coordTimes.length - 1]) - ts(r.properties.coordTimes[0]);
+        }, 0),
+        aggregatedTime = stopTime + routeTime;
+
+    t.ok(almostEqual(aggregatedTime, indataTime, 5 * 60 * 1000), aggregatedTime + ' should be similar to ' + indataTime +
+        ' (diff is ' + Math.round((aggregatedTime - indataTime) / (60 * 1000)) + ' minutes)');
+    t.end();
+});
+
+test('finds long stop with only two positions', function(t) {
+    var ts = function(d) { return new Date(d).getTime(); },
+        d = findstops(geojsonTrack3, {maxTimeGap: 24 * 60 * 60 * 1000, stopTolerance: 0.05});
+        
+    t.ok(d.stops.features.some(function(s) {
+        return s.properties.startTime === '2016-02-02 12:05:26' && 
+            s.properties.endTime === '2016-02-02 13:06:39';
+    }), 'should have stop from 12:05 to 13:06');
+    t.end();
+});
+
+// test('finds stops and routes in slow-moving geojson #3', function(t) {
+//     var ts = function(d) { return new Date(d).getTime(); },
+//         d = findstops(geojsonTrack3, {maxTimeGap: 24 * 60 * 60 * 1000}),
+//         indataTime = ts(geojsonTrack3.properties.coordTimes[geojsonTrack3.properties.coordTimes.length - 1]) -
+//             ts(geojsonTrack3.properties.coordTimes[0]),
+//         stopTime = d.stops.features.reduce(function(t, s) {
+//             return t + ts(s.properties.endTime) - ts(s.properties.startTime);
+//         }, 0),
+//         routeTime = d.routes.features.reduce(function(t, r) {
+//             return t + ts(r.properties.coordTimes[r.properties.coordTimes.length - 1]) - ts(r.properties.coordTimes[0]);
+//         }, 0),
+//         aggregatedTime = stopTime + routeTime;
+
+//     t.ok(almostEqual(aggregatedTime, indataTime, 5 * 60 * 1000), aggregatedTime + ' should be similar to ' + indataTime +
+//         ' (diff is ' + Math.round((aggregatedTime - indataTime) / (60 * 1000)) + ' minutes)');
+//     t.equal(d.stops.features.length, 4);
+//     t.equal(d.routes.features.length, 6);
+//     t.end();
+// });
