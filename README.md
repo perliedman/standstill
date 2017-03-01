@@ -1,5 +1,7 @@
 # Standstill
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/perliedman/standstill.svg)](https://greenkeeper.io/)
+
 Find locations where there has been no movement, a stop, within a [GeoJSON](http://geojson.org/) track, 
 typically recorded from a GPS. Use this to analyze where a vehicle has stopped for a longer period, for example.
 
