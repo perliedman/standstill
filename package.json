@@ -19,7 +19,7 @@
   "author": "Per Liedman <per@liedman.net>",
   "license": "ISC",
   "dependencies": {
-    "turf-distance": "^1.0.1",
+    "turf-distance": "^3.0.12",
     "turf-featurecollection": "^1.0.1",
     "turf-linestring": "^1.0.2",
     "turf-point": "^2.0.1"
